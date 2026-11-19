@@ -4,40 +4,41 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>上下文占用</title>
+  <script src="/preload.js"></script>
   <style>
     :root {
       color-scheme: light dark;
-      --bg: #ffffff;
-      --surface: #f7f8fa;
-      --surface-hover: #eff1f5;
-      --border: rgba(15, 23, 42, 0.1);
-      --text: #0f172a;
-      --text-muted: #64748b;
-      --track: rgba(15, 23, 42, 0.1);
+      --ctx-bg: var(--background, #ffffff);
+      --ctx-surface: var(--card, #f7f8fa);
+      --ctx-surface-hover: var(--muted, #eff1f5);
+      --ctx-border: var(--border, rgba(15, 23, 42, 0.1));
+      --ctx-text: var(--foreground, #0f172a);
+      --ctx-text-muted: var(--muted-foreground, #64748b);
+      --ctx-track: rgba(128, 128, 128, 0.18);
       --ring-ok: #10b981;
       --ring-warn: #f59e0b;
       --ring-high: #ef4444;
       --ring-color: var(--ring-ok);
-      --pill-bg: rgba(16, 185, 129, 0.12);
+      --pill-bg: rgba(16, 185, 129, 0.13);
       --pill-text: #047857;
-      --shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+      --shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
       --font: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
       --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     }
 
     @media (prefers-color-scheme: dark) {
       :root {
-        --bg: #121316;
-        --surface: #1b1d22;
-        --surface-hover: #23262d;
-        --border: rgba(255, 255, 255, 0.09);
-        --text: #f3f4f6;
-        --text-muted: #9ca3af;
-        --track: rgba(255, 255, 255, 0.11);
+        --ctx-bg: var(--background, #121316);
+        --ctx-surface: var(--card, #1b1d22);
+        --ctx-surface-hover: var(--muted, #23262d);
+        --ctx-border: var(--border, rgba(255, 255, 255, 0.1));
+        --ctx-text: var(--foreground, #f3f4f6);
+        --ctx-text-muted: var(--muted-foreground, #9ca3af);
+        --ctx-track: rgba(255, 255, 255, 0.12);
         --ring-ok: #34d399;
         --ring-warn: #fbbf24;
         --ring-high: #f87171;
-        --pill-bg: rgba(52, 211, 153, 0.14);
+        --pill-bg: rgba(52, 211, 153, 0.15);
         --pill-text: #6ee7b7;
         --shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
       }
@@ -51,8 +52,8 @@
       margin: 0;
       padding: 0;
       min-height: 100%;
-      background: var(--bg);
-      color: var(--text);
+      background: var(--ctx-bg);
+      color: var(--ctx-text);
       font-family: var(--font);
       font-size: 13px;
       line-height: 1.45;
@@ -108,9 +109,9 @@
 
     .icon-btn {
       appearance: none;
-      border: 1px solid var(--border);
-      background: var(--surface);
-      color: var(--text-muted);
+      border: 1px solid var(--ctx-border);
+      background: var(--ctx-surface);
+      color: var(--ctx-text-muted);
       border-radius: 8px;
       width: 28px;
       height: 28px;
@@ -122,8 +123,8 @@
     }
 
     .icon-btn:hover {
-      background: var(--surface-hover);
-      color: var(--text);
+      background: var(--ctx-surface-hover);
+      color: var(--ctx-text);
     }
 
     .icon-btn svg {
@@ -132,8 +133,8 @@
     }
 
     .ring-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
+      background: var(--ctx-surface);
+      border: 1px solid var(--ctx-border);
       border-radius: 16px;
       padding: 22px 16px 18px;
       box-shadow: var(--shadow);
@@ -161,7 +162,7 @@
 
     .ring-track {
       fill: none;
-      stroke: var(--track);
+      stroke: var(--ctx-track);
       stroke-width: 10;
     }
 
@@ -196,7 +197,7 @@
       margin-top: 4px;
       font-size: 11.5px;
       font-family: var(--mono);
-      color: var(--text-muted);
+      color: var(--ctx-text-muted);
       font-variant-numeric: tabular-nums;
     }
 
@@ -241,8 +242,8 @@
     }
 
     .stats {
-      background: var(--surface);
-      border: 1px solid var(--border);
+      background: var(--ctx-surface);
+      border: 1px solid var(--ctx-border);
       border-radius: 12px;
       overflow: hidden;
     }
@@ -253,7 +254,7 @@
       justify-content: space-between;
       gap: 10px;
       padding: 9px 12px;
-      border-bottom: 1px solid var(--border);
+      border-bottom: 1px solid var(--ctx-border);
     }
 
     .stat-row:last-child {
@@ -261,7 +262,7 @@
     }
 
     .stat-label {
-      color: var(--text-muted);
+      color: var(--ctx-text-muted);
       font-size: 12px;
     }
 
@@ -283,9 +284,9 @@
       width: 100%;
       min-width: 0;
       appearance: none;
-      background: var(--surface);
-      color: var(--text);
-      border: 1px solid var(--border);
+      background: var(--ctx-surface);
+      color: var(--ctx-text);
+      border: 1px solid var(--ctx-border);
       border-radius: 9px;
       padding: 7px 10px;
       font-family: var(--font);
@@ -295,7 +296,7 @@
     }
 
     select:hover {
-      background: var(--surface-hover);
+      background: var(--ctx-surface-hover);
     }
 
     .footer {
@@ -304,7 +305,7 @@
       justify-content: space-between;
       gap: 8px;
       font-size: 11px;
-      color: var(--text-muted);
+      color: var(--ctx-text-muted);
       padding: 0 2px;
     }
 
@@ -406,6 +407,7 @@
     (() => {
       const CIRCUMFERENCE = 2 * Math.PI * 50;
       const STORAGE_LIMIT_KEY = "ag_ctx_gauge_limit";
+      const POLL_INTERVAL_MS = 2000;
 
       const appEl = document.getElementById("app");
       const ringProgress = document.getElementById("ringProgress");
@@ -438,7 +440,9 @@
         selectedLimit = "auto";
       }
 
-      let eventSource = null;
+      let pollTimer = null;
+      let inFlight = false;
+      let lastRenderSig = "";
 
       function detectHostConversationId() {
         if (window.sidecar && window.sidecar.conversationId) {
@@ -497,6 +501,24 @@
         showError("");
         const report = data.current;
         const sessions = data.sessions || [];
+
+        const sig = JSON.stringify({
+          c: report
+            ? [
+                report.conversationId,
+                report.contextTokens,
+                report.contextLimit,
+                report.peakContextTokens,
+                report.compactionCount,
+                report.updatedAt,
+                report.model,
+                report.title,
+              ]
+            : null,
+          s: sessions.map((x) => [x.conversationId, x.usagePercent, x.title]),
+        });
+        if (sig === lastRenderSig) return;
+        lastRenderSig = sig;
 
         // Populate session switcher without clobbering user's selection
         const currentValue = selectedConversation;
@@ -583,58 +605,66 @@
         return params;
       }
 
-      async function fetchOnce() {
+      function scheduleNextPoll() {
+        if (pollTimer) clearTimeout(pollTimer);
+        if (document.hidden) return;
+        pollTimer = setTimeout(() => fetchOnce(false), POLL_INTERVAL_MS);
+      }
+
+      async function fetchOnce(forceRender = false) {
+        if (inFlight) return;
+        inFlight = true;
+        if (forceRender) lastRenderSig = "";
+
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 5000);
         try {
-          const res = await fetch(buildApiUrl("./api/usage", currentQueryParams()), { cache: "no-store" });
+          const res = await fetch(buildApiUrl("./api/usage", currentQueryParams()), {
+            cache: "no-store",
+            signal: controller.signal,
+          });
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
           const data = await res.json();
           renderUsage(data);
         } catch (err) {
-          showError(`读取失败: ${err.message || err}`);
+          if (err && err.name !== "AbortError") {
+            showError(`读取失败: ${err.message || err}`);
+          }
+        } finally {
+          clearTimeout(timeout);
+          inFlight = false;
+          scheduleNextPoll();
         }
-      }
-
-      function connectStream() {
-        if (eventSource) {
-          eventSource.close();
-          eventSource = null;
-        }
-        const url = buildApiUrl("./api/events", currentQueryParams());
-        eventSource = new EventSource(url);
-        eventSource.onmessage = (ev) => {
-          try {
-            const payload = JSON.parse(ev.data);
-            renderUsage(payload);
-          } catch {}
-        };
-        eventSource.onerror = () => {
-          // EventSource auto-reconnects; keep last rendered state intact.
-        };
       }
 
       conversationSelect.addEventListener("change", () => {
         selectedConversation = conversationSelect.value;
-        fetchOnce();
-        connectStream();
+        fetchOnce(true);
       });
 
       limitSelect.addEventListener("change", () => {
         selectedLimit = limitSelect.value;
         localStorage.setItem(STORAGE_LIMIT_KEY, selectedLimit);
-        fetchOnce();
-        connectStream();
+        fetchOnce(true);
       });
 
       refreshBtn.addEventListener("click", () => {
-        fetchOnce();
+        fetchOnce(true);
+      });
+
+      document.addEventListener("visibilitychange", () => {
+        if (document.hidden) {
+          if (pollTimer) clearTimeout(pollTimer);
+        } else {
+          fetchOnce(false);
+        }
       });
 
       window.addEventListener("beforeunload", () => {
-        if (eventSource) eventSource.close();
+        if (pollTimer) clearTimeout(pollTimer);
       });
 
-      fetchOnce();
-      connectStream();
+      fetchOnce(true);
     })();
   </script>
 </body>

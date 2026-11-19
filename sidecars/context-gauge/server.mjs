@@ -2,11 +2,12 @@
 /**
  * Antigravity Sidecar Web Server for the Codex-style Context Usage Gauge.
  * Zero external dependencies — serves the minimalist circular gauge UI and
- * streams real-time transcript.jsonl updates over Server-Sent Events (SSE).
+ * exposes a fast JSON endpoint (/api/usage) backed by local transcript.jsonl files.
  */
 
 import fs from "node:fs";
 import http from "node:http";
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
@@ -20,9 +21,38 @@ import {
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const UI_HTML_PATH = path.join(__dirname, "ui.html");
-
-const DEFAULT_POLL_INTERVAL_MS = 1500;
 const MAX_LIST_SESSIONS = 12;
+
+function loadPreloadJs() {
+  const candidates = [];
+  if (process.env.ANTIGRAVITY_APP_DATA_DIR) {
+    candidates.push(path.join(process.env.ANTIGRAVITY_APP_DATA_DIR, "lib", "node_modules", "sidecar_sdk", "preload.js"));
+  }
+  if (process.env.ANTIGRAVITY_EXECUTABLE_DATA_DIR) {
+    let dir = process.env.ANTIGRAVITY_EXECUTABLE_DATA_DIR;
+    for (let i = 0; i < 6; i += 1) {
+      if (path.basename(dir) === "sidecar_data") {
+        candidates.push(path.join(path.dirname(dir), "lib", "node_modules", "sidecar_sdk", "preload.js"));
+        break;
+      }
+      const parent = path.dirname(dir);
+      if (parent === dir) break;
+      dir = parent;
+    }
+  }
+  candidates.push(path.join(os.homedir(), ".gemini", "antigravity", "lib", "node_modules", "sidecar_sdk", "preload.js"));
+
+  for (const candidate of candidates) {
+    try {
+      if (fs.existsSync(candidate)) {
+        return fs.readFileSync(candidate, "utf8");
+      }
+    } catch {
+      // Ignore unreadable candidates
+    }
+  }
+  return "// Antigravity sidecar preload stub\n";
+}
 
 /**
  * Build the current usage snapshot for the requested conversation & limit.
@@ -50,7 +80,6 @@ export function buildUsageSnapshot(options = {}) {
     try {
       target = findConversation(conversations, options.conversationId);
     } catch {
-      // Fallback to latest active conversation if requested ID isn't created on disk yet.
       target = conversations[0];
     }
   }
@@ -79,12 +108,10 @@ export function buildUsageSnapshot(options = {}) {
 
 /**
  * Create the HTTP server for the Context Gauge sidecar.
- * @param {{ appDataDir?: string | null, pollIntervalMs?: number }} [config]
+ * @param {{ appDataDir?: string | null }} [config]
  */
 export function createSidecarServer(config = {}) {
-  const uiHtml = fs.readFileSync(UI_HTML_PATH, "utf8");
-  const pollIntervalMs = config.pollIntervalMs ?? DEFAULT_POLL_INTERVAL_MS;
-  const sseClients = new Set();
+  const preloadJs = loadPreloadJs();
 
   const server = http.createServer((req, res) => {
     const reqUrl = new URL(req.url || "/", "http://127.0.0.1");
@@ -96,7 +123,17 @@ export function createSidecarServer(config = {}) {
       return;
     }
 
+    if (pathname === "/preload.js") {
+      res.writeHead(200, {
+        "Content-Type": "application/javascript; charset=utf-8",
+        "Cache-Control": "no-store",
+      });
+      res.end(preloadJs);
+      return;
+    }
+
     if (pathname === "/" || pathname === "/index.html" || pathname === "/ui.html") {
+      const uiHtml = fs.readFileSync(UI_HTML_PATH, "utf8");
       res.writeHead(200, {
         "Content-Type": "text/html; charset=utf-8",
         "Cache-Control": "no-store",
@@ -124,64 +161,13 @@ export function createSidecarServer(config = {}) {
       return;
     }
 
-    if (pathname === "/api/events") {
-      const conversationId = reqUrl.searchParams.get("conversationId");
-      const limitRaw = reqUrl.searchParams.get("limit");
-
-      res.writeHead(200, {
-        "Content-Type": "text/event-stream; charset=utf-8",
-        "Cache-Control": "no-cache, no-transform",
-        Connection: "keep-alive",
-      });
-      res.write(": connected\n\n");
-
-      let lastFingerprint = "";
-      const pushIfChanged = (force = false) => {
-        if (res.writableEnded || res.destroyed) return;
-        try {
-          const snapshot = buildUsageSnapshot({
-            conversationId,
-            limitRaw,
-            appDataDir: config.appDataDir || null,
-          });
-          const cur = snapshot.current;
-          const fingerprint = cur
-            ? `${cur.conversationId}:${cur.contextTokens}:${cur.contextLimit}:${cur.totalSteps}:${cur.compactionCount}:${snapshot.sessions.length}`
-            : "empty";
-          if (force || fingerprint !== lastFingerprint) {
-            lastFingerprint = fingerprint;
-            res.write(`data: ${JSON.stringify(snapshot)}\n\n`);
-          }
-        } catch {
-          // Ignore transient read errors during active writes.
-        }
-      };
-
-      pushIfChanged(true);
-      const timer = setInterval(() => pushIfChanged(false), pollIntervalMs);
-      const client = { res, timer };
-      sseClients.add(client);
-
-      req.on("close", () => {
-        clearInterval(timer);
-        sseClients.delete(client);
-      });
-      return;
-    }
-
     res.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
     res.end("Not Found");
   });
 
-  server.on("close", () => {
-    for (const client of sseClients) {
-      clearInterval(client.timer);
-      if (!client.res.writableEnded) {
-        client.res.end();
-      }
-    }
-    sseClients.clear();
-  });
+  // Short keep-alive timeout so proxy connections recycle cleanly.
+  server.keepAliveTimeout = 5000;
+  server.headersTimeout = 10000;
 
   return server;
 }
@@ -211,7 +197,7 @@ function startMain() {
   server.listen(listenPort, "127.0.0.1", () => {
     const addr = server.address();
     const actualPort = typeof addr === "object" && addr ? addr.port : listenPort;
-    console.error(`Context Gauge sidecar listening on http://127.0.0.1:${actualPort}`);
+    console.log(`[sidecar] listening on 127.0.0.1:${actualPort}`);
   });
 }
 

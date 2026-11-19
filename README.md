@@ -2,7 +2,7 @@
 
 轻量级、零外部依赖的 Google Antigravity 插件，用于精准查看当前及历史会话的上下文窗口占用情况：
 
-- **Codex 风格侧边栏实时环形表（Sidecar UI）**：嵌入 Antigravity 右侧辅助栏（Aux Pane），通过 SSE 实时监听 `transcript.jsonl` 变更自动刷新，自动适配深浅色主题。
+- **Codex 风格侧边栏实时环形表（Sidecar UI）**：嵌入 Antigravity 右侧辅助栏（Aux Pane），实时轮询 `transcript.jsonl` 变更自动刷新，原生接入 `preload.js` 主题变量自动适配深浅色模式。
 - **快捷对话技能（`/context-usage` Skill）**：在对话中输入 `/context-usage` 或自然语言随时查询上下文占用，也可一键打开右侧环形面板。
 - **独立 CLI 工具**：零依赖 Node.js 脚本，不消耗模型 Token，支持单会话查询、多会话概览、自定义上限与 JSON 输出。
 
@@ -94,7 +94,7 @@ context-usage/
 ├── sidecars/
 │   └── context-gauge/
 │       ├── sidecar.json                     # 右侧辅助栏 Sidecar 声明
-│       ├── server.mjs                       # 零依赖 HTTP + SSE 实时服务
+│       ├── server.mjs                       # 零依赖 HTTP 实时服务（/api/usage + /preload.js）
 │       └── ui.html                          # Codex 风格极简环形指示器页面
 ├── skills/
 │   └── context-usage/

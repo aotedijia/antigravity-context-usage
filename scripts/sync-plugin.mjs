@@ -59,28 +59,33 @@ function parseArgs(argv) {
   return opts;
 }
 
-function copyRecursive(src, dst) {
+function copyRecursive(src, dst, skipRelPaths = new Set(), relBase = "") {
   const stat = fs.statSync(src);
   if (stat.isDirectory()) {
     fs.mkdirSync(dst, { recursive: true });
     for (const entry of fs.readdirSync(src)) {
-      copyRecursive(path.join(src, entry), path.join(dst, entry));
+      const nextRel = relBase ? `${relBase}/${entry}` : entry;
+      copyRecursive(path.join(src, entry), path.join(dst, entry), skipRelPaths, nextRel);
     }
   } else {
+    if (skipRelPaths.has(relBase)) return;
     fs.mkdirSync(path.dirname(dst), { recursive: true });
     fs.copyFileSync(src, dst);
   }
 }
 
-export function patchSidecarManifestForPlatform(targetDir, platform) {
-  const sidecarManifestPath = path.join(targetDir, "sidecars", "context-gauge", "sidecar.json");
-  if (!fs.existsSync(sidecarManifestPath)) return;
-  const manifest = JSON.parse(fs.readFileSync(sidecarManifestPath, "utf8"));
-  const desiredCommand = platform === "win32" ? "node.exe" : "node";
-  if (manifest.command !== desiredCommand) {
-    manifest.command = desiredCommand;
-    fs.writeFileSync(sidecarManifestPath, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
+export function writeSidecarManifestForPlatform(targetDir, platform) {
+  const srcPath = path.join(REPO_ROOT, "sidecars", "context-gauge", "sidecar.json");
+  const dstPath = path.join(targetDir, "sidecars", "context-gauge", "sidecar.json");
+  if (!fs.existsSync(srcPath)) return;
+  const manifest = JSON.parse(fs.readFileSync(srcPath, "utf8"));
+  manifest.command = platform === "win32" ? "node.exe" : "node";
+  const nextContent = `${JSON.stringify(manifest, null, 2)}\n`;
+  if (fs.existsSync(dstPath) && fs.readFileSync(dstPath, "utf8") === nextContent) {
+    return;
   }
+  fs.mkdirSync(path.dirname(dstPath), { recursive: true });
+  fs.writeFileSync(dstPath, nextContent, "utf8");
 }
 
 export function syncPlugin(opts) {
@@ -99,16 +104,17 @@ export function syncPlugin(opts) {
     return { action: "dry-run-install", target: opts.target, entries: BUNDLE_ENTRIES };
   }
 
+  const skipRel = new Set(["sidecars/context-gauge/sidecar.json"]);
   fs.mkdirSync(opts.target, { recursive: true });
   for (const entry of BUNDLE_ENTRIES) {
     const src = path.join(REPO_ROOT, entry);
     const dst = path.join(opts.target, entry);
     if (!fs.existsSync(src)) continue;
     // Copy in-place so running sidecar processes holding directory CWD locks on Windows do not fail with EPERM.
-    copyRecursive(src, dst);
+    copyRecursive(src, dst, skipRel, entry);
   }
 
-  patchSidecarManifestForPlatform(opts.target, opts.platform);
+  writeSidecarManifestForPlatform(opts.target, opts.platform);
   return { action: "installed", target: opts.target, entries: BUNDLE_ENTRIES, platform: opts.platform };
 }
 

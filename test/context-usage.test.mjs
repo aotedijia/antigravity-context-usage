@@ -194,6 +194,11 @@ describe("sidecar HTTP server", () => {
       assert.equal(htmlRes.status, 200);
       const html = await htmlRes.text();
       assert.match(html, /ringProgress/);
+      assert.match(html, /\/preload\.js/);
+
+      const preloadRes = await fetch(`${base}/preload.js`);
+      assert.equal(preloadRes.status, 200);
+      assert.match(preloadRes.headers.get("content-type") || "", /javascript/);
 
       const usageRes = await fetch(`${base}/api/usage?conversationId=${convId}&limit=200k`);
       assert.equal(usageRes.status, 200);
