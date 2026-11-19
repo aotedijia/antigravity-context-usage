@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>上下文占用</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #ffffff;
+      --surface: #f7f8fa;
+      --surface-hover: #eff1f5;
+      --border: rgba(15, 23, 42, 0.1);
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --track: rgba(15, 23, 42, 0.1);
+      --ring-ok: #10b981;
+      --ring-warn: #f59e0b;
+      --ring-high: #ef4444;
+      --ring-color: var(--ring-ok);
+      --pill-bg: rgba(16, 185, 129, 0.12);
+      --pill-text: #047857;
+      --shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+      --font: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #121316;
+        --surface: #1b1d22;
+        --surface-hover: #23262d;
+        --border: rgba(255, 255, 255, 0.09);
+        --text: #f3f4f6;
+        --text-muted: #9ca3af;
+        --track: rgba(255, 255, 255, 0.11);
+        --ring-ok: #34d399;
+        --ring-warn: #fbbf24;
+        --ring-high: #f87171;
+        --pill-bg: rgba(52, 211, 153, 0.14);
+        --pill-text: #6ee7b7;
+        --shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+      }
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      min-height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 13px;
+      line-height: 1.45;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .container {
+      max-width: 380px;
+      margin: 0 auto;
+      padding: 18px 16px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .title-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .live-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--ring-color);
+      flex-shrink: 0;
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--ring-color) 20%, transparent);
+    }
+
+    .title {
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .icon-btn {
+      appearance: none;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text-muted);
+      border-radius: 8px;
+      width: 28px;
+      height: 28px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background 0.15s ease, color 0.15s ease;
+    }
+
+    .icon-btn:hover {
+      background: var(--surface-hover);
+      color: var(--text);
+    }
+
+    .icon-btn svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    .ring-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 22px 16px 18px;
+      box-shadow: var(--shadow);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .ring-wrap {
+      position: relative;
+      width: 152px;
+      height: 152px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: default;
+    }
+
+    .ring-svg {
+      width: 152px;
+      height: 152px;
+      transform: rotate(-90deg);
+    }
+
+    .ring-track {
+      fill: none;
+      stroke: var(--track);
+      stroke-width: 10;
+    }
+
+    .ring-progress {
+      fill: none;
+      stroke: var(--ring-color);
+      stroke-width: 10;
+      stroke-linecap: round;
+      transition: stroke-dashoffset 0.45s cubic-bezier(0.22, 1, 0.36, 1), stroke 0.25s ease;
+    }
+
+    .ring-center {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 16px;
+    }
+
+    .ring-percent {
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      font-variant-numeric: tabular-nums;
+      line-height: 1.1;
+    }
+
+    .ring-fraction {
+      margin-top: 4px;
+      font-size: 11.5px;
+      font-family: var(--mono);
+      color: var(--text-muted);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 11.5px;
+      font-weight: 500;
+      background: var(--pill-bg);
+      color: var(--pill-text);
+    }
+
+    .status-warn {
+      --ring-color: var(--ring-warn);
+      --pill-bg: rgba(245, 158, 11, 0.14);
+      --pill-text: #d97706;
+    }
+
+    .status-high {
+      --ring-color: var(--ring-high);
+      --pill-bg: rgba(239, 68, 68, 0.14);
+      --pill-text: #dc2626;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      .status-warn { --pill-text: #fcd34d; }
+      .status-high { --pill-text: #fca5a5; }
+    }
+
+    .compact-tip {
+      width: 100%;
+      padding: 8px 10px;
+      border-radius: 10px;
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.25);
+      color: var(--pill-text);
+      font-size: 12px;
+      text-align: center;
+    }
+
+    .stats {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .stat-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 9px 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .stat-row:last-child {
+      border-bottom: none;
+    }
+
+    .stat-label {
+      color: var(--text-muted);
+      font-size: 12px;
+    }
+
+    .stat-value {
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      text-align: right;
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+    }
+
+    select {
+      width: 100%;
+      min-width: 0;
+      appearance: none;
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      padding: 7px 10px;
+      font-family: var(--font);
+      font-size: 12px;
+      cursor: pointer;
+      outline: none;
+    }
+
+    select:hover {
+      background: var(--surface-hover);
+    }
+
+    .footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 11px;
+      color: var(--text-muted);
+      padding: 0 2px;
+    }
+
+    .footer-meta {
+      font-family: var(--mono);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .error-banner {
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.25);
+      color: var(--ring-high);
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <main id="app" class="container">
+    <header class="header">
+      <div class="title-group">
+        <span class="live-dot" id="liveDot" title="实时同步中"></span>
+        <span class="title" id="sessionTitle">上下文占用</span>
+      </div>
+      <div class="header-actions">
+        <button class="icon-btn" id="refreshBtn" title="立即刷新" aria-label="刷新">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 12a9 9 0 1 1-2.64-6.36" />
+            <polyline points="21 3 21 9 15 9" />
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <div id="errorBanner" class="error-banner hidden"></div>
+
+    <section class="ring-card">
+      <div class="ring-wrap" id="ringWrap" title="上下文窗口占用率">
+        <svg class="ring-svg" viewBox="0 0 120 120" aria-hidden="true">
+          <circle class="ring-track" cx="60" cy="60" r="50"></circle>
+          <circle class="ring-progress" id="ringProgress" cx="60" cy="60" r="50" stroke-dasharray="314.159" stroke-dashoffset="314.159"></circle>
+        </svg>
+        <div class="ring-center">
+          <div class="ring-percent" id="percentText">--%</div>
+          <div class="ring-fraction" id="fractionText">0 / 1M</div>
+        </div>
+      </div>
+
+      <div class="status-pill" id="statusPill">读取中…</div>
+      <div class="compact-tip hidden" id="compactTip">上下文已达 80% 以上，建议输入 <code>/compact</code> 压缩</div>
+    </section>
+
+    <section class="stats" aria-label="上下文占用详情">
+      <div class="stat-row">
+        <span class="stat-label">已用上下文</span>
+        <span class="stat-value" id="usedTokens">-</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">剩余空间</span>
+        <span class="stat-value" id="remainingTokens">-</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">本段峰值</span>
+        <span class="stat-value" id="peakTokens">-</span>
+      </div>
+      <div class="stat-row hidden" id="compactionRow">
+        <span class="stat-label">已压缩次数</span>
+        <span class="stat-value" id="compactionCount">0</span>
+      </div>
+    </section>
+
+    <section class="controls" aria-label="会话与上限设置">
+      <select id="conversationSelect" title="切换会话">
+        <option value="__auto__">自动追踪当前会话</option>
+      </select>
+      <select id="limitSelect" title="上下文窗口上限">
+        <option value="auto">上限: 自动</option>
+        <option value="128k">128K</option>
+        <option value="200k">200K</option>
+        <option value="256k">256K</option>
+        <option value="1m">1M</option>
+      </select>
+    </section>
+
+    <footer class="footer">
+      <span class="footer-meta" id="metaLeft">-</span>
+      <span class="footer-meta" id="metaRight">-</span>
+    </footer>
+  </main>
+
+  <script>
+    (() => {
+      const CIRCUMFERENCE = 2 * Math.PI * 50;
+      const STORAGE_LIMIT_KEY = "ag_ctx_gauge_limit";
+
+      const appEl = document.getElementById("app");
+      const ringProgress = document.getElementById("ringProgress");
+      const ringWrap = document.getElementById("ringWrap");
+      const percentText = document.getElementById("percentText");
+      const fractionText = document.getElementById("fractionText");
+      const statusPill = document.getElementById("statusPill");
+      const compactTip = document.getElementById("compactTip");
+      const usedTokensEl = document.getElementById("usedTokens");
+      const remainingTokensEl = document.getElementById("remainingTokens");
+      const peakTokensEl = document.getElementById("peakTokens");
+      const compactionRow = document.getElementById("compactionRow");
+      const compactionCountEl = document.getElementById("compactionCount");
+      const sessionTitleEl = document.getElementById("sessionTitle");
+      const metaLeftEl = document.getElementById("metaLeft");
+      const metaRightEl = document.getElementById("metaRight");
+      const conversationSelect = document.getElementById("conversationSelect");
+      const limitSelect = document.getElementById("limitSelect");
+      const refreshBtn = document.getElementById("refreshBtn");
+      const errorBanner = document.getElementById("errorBanner");
+
+      const urlParams = new URLSearchParams(window.location.search);
+      const authToken = urlParams.get("token") || "";
+
+      let selectedConversation = "__auto__";
+      let selectedLimit = localStorage.getItem(STORAGE_LIMIT_KEY) || "auto";
+      if ([...limitSelect.options].some((o) => o.value === selectedLimit)) {
+        limitSelect.value = selectedLimit;
+      } else {
+        selectedLimit = "auto";
+      }
+
+      let eventSource = null;
+
+      function detectHostConversationId() {
+        if (window.sidecar && window.sidecar.conversationId) {
+          return window.sidecar.conversationId;
+        }
+        return urlParams.get("conversationId") || urlParams.get("convId") || "";
+      }
+
+      function buildApiUrl(pathname, extraParams = {}) {
+        const url = new URL(pathname, window.location.href);
+        if (authToken) url.searchParams.set("token", authToken);
+        for (const [k, v] of Object.entries(extraParams)) {
+          if (v !== undefined && v !== null && v !== "") {
+            url.searchParams.set(k, String(v));
+          }
+        }
+        return url.toString();
+      }
+
+      function formatNumber(n) {
+        return Math.round(n || 0).toLocaleString("en-US");
+      }
+
+      function formatCompact(n) {
+        const v = Number(n) || 0;
+        if (v >= 1_000_000) {
+          const m = v / 1_000_000;
+          return `${Number.isInteger(m) ? m : m.toFixed(2).replace(/\.?0+$/, "")}M`;
+        }
+        if (v >= 1_000) {
+          const k = v / 1_000;
+          return `${k >= 100 ? Math.round(k) : k.toFixed(1).replace(/\.0$/, "")}K`;
+        }
+        return String(v);
+      }
+
+      function formatTime(iso) {
+        if (!iso) return "-";
+        const d = new Date(iso);
+        if (Number.isNaN(d.getTime())) return iso;
+        const p = (x) => String(x).padStart(2, "0");
+        return `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+      }
+
+      function showError(msg) {
+        if (!msg) {
+          errorBanner.classList.add("hidden");
+          errorBanner.textContent = "";
+          return;
+        }
+        errorBanner.textContent = msg;
+        errorBanner.classList.remove("hidden");
+      }
+
+      function renderUsage(data) {
+        showError("");
+        const report = data.current;
+        const sessions = data.sessions || [];
+
+        // Populate session switcher without clobbering user's selection
+        const currentValue = selectedConversation;
+        const existingOptions = Array.from(conversationSelect.options).map((o) => `${o.value}:${o.text}`);
+        const nextOptions = [
+          { value: "__auto__", text: "自动追踪当前会话" },
+          ...sessions.map((s) => ({
+            value: s.conversationId,
+            text: `${s.conversationId.slice(0, 8)} · ${s.usagePercent.toFixed(1)}% · ${s.title || "未命名会话"}`,
+          })),
+        ];
+        const nextSig = nextOptions.map((o) => `${o.value}:${o.text}`);
+        if (existingOptions.join("|") !== nextSig.join("|")) {
+          conversationSelect.innerHTML = "";
+          for (const opt of nextOptions) {
+            const el = document.createElement("option");
+            el.value = opt.value;
+            el.textContent = opt.text;
+            conversationSelect.appendChild(el);
+          }
+          if (nextOptions.some((o) => o.value === currentValue)) {
+            conversationSelect.value = currentValue;
+          }
+        }
+
+        if (!report) {
+          percentText.textContent = "0%";
+          fractionText.textContent = "0 / 1M";
+          statusPill.textContent = "暂无会话记录";
+          ringProgress.style.strokeDashoffset = String(CIRCUMFERENCE);
+          return;
+        }
+
+        const pct = Math.max(0, Math.min(100, report.usagePercent || 0));
+        const offset = CIRCUMFERENCE * (1 - pct / 100);
+        ringProgress.style.strokeDasharray = String(CIRCUMFERENCE);
+        ringProgress.style.strokeDashoffset = String(offset);
+
+        appEl.classList.remove("status-warn", "status-high");
+        if (report.status === "high") {
+          appEl.classList.add("status-high");
+          statusPill.textContent = "上下文紧张";
+        } else if (report.status === "warn") {
+          appEl.classList.add("status-warn");
+          statusPill.textContent = "占用偏高";
+        } else {
+          statusPill.textContent = "空间充裕";
+        }
+
+        compactTip.classList.toggle("hidden", report.status !== "high");
+
+        percentText.textContent = `${report.usagePercent.toFixed(1)}%`;
+        fractionText.textContent = `${formatCompact(report.contextTokens)} / ${formatCompact(report.contextLimit)}`;
+        ringWrap.title = `已用 ${formatNumber(report.contextTokens)} / ${formatNumber(report.contextLimit)} tokens (${report.usagePercent.toFixed(1)}%) · 剩余 ${formatNumber(report.remainingTokens)} tokens`;
+
+        usedTokensEl.textContent = `${formatNumber(report.contextTokens)} tokens`;
+        remainingTokensEl.textContent = `${formatNumber(report.remainingTokens)} tokens`;
+        peakTokensEl.textContent = `${formatNumber(report.peakContextTokens)} tokens`;
+
+        if (report.compactionCount > 0) {
+          compactionRow.classList.remove("hidden");
+          compactionCountEl.textContent = `${report.compactionCount} 次（历史峰值 ${formatCompact(report.allTimePeakContextTokens)}）`;
+        } else {
+          compactionRow.classList.add("hidden");
+        }
+
+        sessionTitleEl.textContent = report.title || `会话 ${report.conversationId.slice(0, 8)}`;
+        const modelLabel = report.model ? report.model : "未知模型";
+        metaLeftEl.textContent = `${report.conversationId.slice(0, 8)} · ${modelLabel}`;
+        metaRightEl.textContent = `更新 ${formatTime(report.updatedAt)}`;
+      }
+
+      function currentQueryParams() {
+        const params = {};
+        if (selectedConversation !== "__auto__") {
+          params.conversationId = selectedConversation;
+        } else {
+          const hostConv = detectHostConversationId();
+          if (hostConv) params.conversationId = hostConv;
+        }
+        if (selectedLimit !== "auto") {
+          params.limit = selectedLimit;
+        }
+        return params;
+      }
+
+      async function fetchOnce() {
+        try {
+          const res = await fetch(buildApiUrl("./api/usage", currentQueryParams()), { cache: "no-store" });
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const data = await res.json();
+          renderUsage(data);
+        } catch (err) {
+          showError(`读取失败: ${err.message || err}`);
+        }
+      }
+
+      function connectStream() {
+        if (eventSource) {
+          eventSource.close();
+          eventSource = null;
+        }
+        const url = buildApiUrl("./api/events", currentQueryParams());
+        eventSource = new EventSource(url);
+        eventSource.onmessage = (ev) => {
+          try {
+            const payload = JSON.parse(ev.data);
+            renderUsage(payload);
+          } catch {}
+        };
+        eventSource.onerror = () => {
+          // EventSource auto-reconnects; keep last rendered state intact.
+        };
+      }
+
+      conversationSelect.addEventListener("change", () => {
+        selectedConversation = conversationSelect.value;
+        fetchOnce();
+        connectStream();
+      });
+
+      limitSelect.addEventListener("change", () => {
+        selectedLimit = limitSelect.value;
+        localStorage.setItem(STORAGE_LIMIT_KEY, selectedLimit);
+        fetchOnce();
+        connectStream();
+      });
+
+      refreshBtn.addEventListener("click", () => {
+        fetchOnce();
+      });
+
+      window.addEventListener("beforeunload", () => {
+        if (eventSource) eventSource.close();
+      });
+
+      fetchOnce();
+      connectStream();
+    })();
+  </script>
+</body>
+</html>

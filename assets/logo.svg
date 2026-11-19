@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" fill="none">
+  <defs>
+    <linearGradient id="gaugeGrad" x1="20" y1="108" x2="108" y2="20" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#34A853"/>
+      <stop offset="55%" stop-color="#4285F4"/>
+      <stop offset="100%" stop-color="#A142F4"/>
+    </linearGradient>
+  </defs>
+  <!-- Outer subtle track ring with ~12% margin -->
+  <circle cx="64" cy="64" r="44" stroke="#8E918F" stroke-opacity="0.28" stroke-width="11"/>
+  <!-- Active context usage arc (~70% sweep) -->
+  <circle
+    cx="64"
+    cy="64"
+    r="44"
+    stroke="url(#gaugeGrad)"
+    stroke-width="11"
+    stroke-linecap="round"
+    stroke-dasharray="194 277"
+    transform="rotate(-90 64 64)"
+  />
+  <!-- Inner badge / center readout -->
+  <circle cx="64" cy="64" r="24" fill="#1F2937" fill-opacity="0.88"/>
+  <path d="M54 68 L61 54 L67 64 L74 52" stroke="#60A5FA" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="74" cy="52" r="3.5" fill="#34D399"/>
+  <rect x="52" y="74" width="24" height="4" rx="2" fill="#E5E7EB" fill-opacity="0.85"/>
+</svg>

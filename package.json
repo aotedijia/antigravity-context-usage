@@ -1,0 +1,22 @@
+{
+  "name": "antigravity-context-usage",
+  "version": "1.1.0",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "author": "aotedijia",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/aotedijia/antigravity-context-usage.git"
+  },
+  "description": "Lightweight Google Antigravity plugin to inspect real-time conversation context usage.",
+  "scripts": {
+    "usage": "node skills/context-usage/scripts/context-usage.mjs",
+    "install-plugin": "node scripts/sync-plugin.mjs",
+    "uninstall-plugin": "node scripts/sync-plugin.mjs --uninstall",
+    "test": "node --test test/context-usage.test.mjs"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

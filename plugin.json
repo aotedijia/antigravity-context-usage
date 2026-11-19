@@ -1,0 +1,18 @@
+{
+  "name": "context-usage",
+  "displayName": "上下文用量查看",
+  "version": "1.1.0",
+  "description": "谷歌反重力（Antigravity）上下文占用查看工具：提供右侧辅助栏 Codex 风格实时环形指示器（Sidecar UI）与轻量对话 Skill，精准展示当前及历史会话的上下文占用率与剩余空间。",
+  "logo": "assets/logo.svg",
+  "author": {
+    "name": "aotedijia",
+    "url": "https://github.com/aotedijia"
+  },
+  "homepage": "https://github.com/aotedijia/antigravity-context-usage",
+  "repository": "https://github.com/aotedijia/antigravity-context-usage",
+  "suggestedPrompts": [
+    "打开上下文占用环形面板",
+    "查看当前会话的上下文占用",
+    "列出最近 5 个会话的上下文占用情况"
+  ]
+}
