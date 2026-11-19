@@ -6,6 +6,10 @@
 - **快捷对话技能（`/context-usage` Skill）**：在对话中输入 `/context-usage` 或自然语言随时查询上下文占用，也可一键打开右侧环形面板。
 - **独立 CLI 工具**：零依赖 Node.js 脚本，不消耗模型 Token，支持单会话查询、多会话概览、自定义上限与 JSON 输出。
 
+<p align="center">
+  <img src="./docs/images/preview-context-gauge.png" alt="上下文占用环形面板效果预览" width="360" />
+</p>
+
 ---
 
 ## 核心原理
@@ -48,9 +52,17 @@ node scripts/sync-plugin.mjs --uninstall
 
 按以下 3 步即可直接在 Antigravity 右侧边栏打开实时环形表（无需发消息、不消耗 Token）：
 
-1. 点击窗口右上角的 **Toggle Side Panel** 按钮（快捷键 `Ctrl+Shift+B`，macOS 为 `Cmd+Shift+B`）展开右侧边栏。
-2. 在右侧边栏菜单中点击 **扩展插件**（Extensions）。
-3. 在弹出的扩展插件列表中点击 **上下文占用**，即可在侧边栏显示实时环形指示器。
+1. 点击窗口右上角的 **Toggle Side Panel** 按钮（快捷键 `Ctrl+Shift+B`，macOS 为 `Cmd+Shift+B`）展开右侧边栏：
+
+   <img src="./docs/images/step1-toggle-side-panel.png" alt="第 1 步：点击右上角 Toggle Side Panel" width="240" />
+
+2. 在右侧边栏菜单中点击 **扩展插件**（Extensions）：
+
+   <img src="./docs/images/step2-extensions-menu.png" alt="第 2 步：点击扩展插件" width="320" />
+
+3. 在弹出的扩展插件列表中点击 **上下文占用**，即可在侧边栏显示实时环形指示器：
+
+   <img src="./docs/images/step3-open-context-usage.png" alt="第 3 步：点击上下文占用" width="280" />
 
 面板功能：
 - 居中 Codex 风格环形进度条，悬停查看精确已用与剩余 Token
